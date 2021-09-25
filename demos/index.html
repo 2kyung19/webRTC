@@ -31,6 +31,7 @@
     
         </section>
     </div>
+    <div id='onlyvideo'></div>
 
 <script src="/dist/RTCMultiConnection.min.js"></script>
 <script src="/node_modules/webrtc-adapter/out/adapter.js"></script>
@@ -89,7 +90,6 @@ var connection = new RTCMultiConnection();
 
 // by default, socket.io server is assumed to be deployed on your own URL
 connection.socketURL = '/';
-
 connection.socketMessageEvent = 'video-conference-demo';
 
 connection.session = {
@@ -198,6 +198,28 @@ connection.onUserStatusChanged = function(event) {
 connection.videosContainer = document.getElementById('videos-container');
 connection.onstream = function(event) {
     connection.onUserStatusChanged(event);
+    
+    //영상팀에서 사용할 video 부분
+    if (window.location.href.split('&videoid=').length!=1){
+        var onlyvideo = window.location.href.split('&videoid=')[1];
+        var userStream = connection.getRemoteStreams(onlyvideo)[0];
+
+        userStream = getHTMLMediaElement(userStream,{
+            title: '',
+            buttons: [],
+            width: 1000,
+            showOnMouseEnter: false
+        })
+
+        document.getElementById('demos').setAttribute('style','display:none');
+        document.getElementById('onlyvideo').setAttribute('style','display:block');
+        document.getElementById('onlyvideo').appendChild(userStream);
+    }
+
+    else {
+        document.getElementById('demos').setAttribute('style','display:block');
+        document.getElementById('onlyvideo').setAttribute('style','display:none');
+    }
 
     var existing = document.getElementById(event.streamid);
     if(existing && existing.parentNode) {
@@ -208,7 +230,6 @@ connection.onstream = function(event) {
     event.mediaElement.removeAttribute('srcObject');
     event.mediaElement.muted = true;
     event.mediaElement.volume = 0;
-
     var video = document.createElement('video');
 
     try {
@@ -232,7 +253,7 @@ connection.onstream = function(event) {
     var width = parseInt(connection.videosContainer.clientWidth / 3) - 20;
     var mediaElement = getHTMLMediaElement(video, {
         title: event.extra.userFullName,
-        buttons: ['full-screen'],
+        buttons: [],
         width: width,
         showOnMouseEnter: false
     });

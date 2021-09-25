@@ -222,6 +222,88 @@ function getHTMLMediaElement(mediaElement, config) {
     volumeSlider.appendChild(slider);
   }
 
+  if (buttons.has("full-screen")) {
+    var zoom = document.createElement("div");
+    zoom.className =
+      "control " +
+      (config.toggle.has("zoom-in") ? "zoom-out selected" : "zoom-in");
+
+    if (!slider && !recordAudio && !recordVideo && zoom) {
+      mediaControls.insertBefore(zoom, mediaControls.firstChild);
+    } else volumeControl.appendChild(zoom);
+
+    zoom.onclick = function () {
+      if (zoom.className.indexOf("zoom-out") != -1) {
+        zoom.className = zoom.className.replace("zoom-out selected", "zoom-in");
+        exitFullScreen();
+      } else {
+        zoom.className = zoom.className.replace("zoom-in", "zoom-out selected");
+        launchFullscreen(mediaElementContainer);
+      }
+    };
+
+    function launchFullscreen(element) {
+      if (element.requestFullscreen) {
+        element.requestFullscreen();
+      } else if (element.mozRequestFullScreen) {
+        element.mozRequestFullScreen();
+      } else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+      }
+    }
+
+    function exitFullScreen() {
+      if (document.fullscreen) {
+        document.exitFullscreen();
+      }
+
+      if (document.mozFullScreen) {
+        document.mozCancelFullScreen();
+      }
+
+      if (document.webkitIsFullScreen) {
+        document.webkitExitFullscreen();
+      }
+    }
+
+    function screenStateChange(e) {
+      if (e.srcElement != mediaElementContainer) return;
+
+      var isFullScreeMode =
+        document.webkitIsFullScreen ||
+        document.mozFullScreen ||
+        document.fullscreen;
+
+      mediaElementContainer.style.width =
+        (isFullScreeMode ? window.innerWidth - 20 : config.width) + "px";
+      mediaElementContainer.style.display = isFullScreeMode
+        ? "block"
+        : "inline-block";
+
+      if (config.height) {
+        mediaBox.style.height =
+          (isFullScreeMode ? window.innerHeight - 20 : config.height) + "px";
+      }
+
+      if (!isFullScreeMode && config.onZoomout) config.onZoomout();
+      if (isFullScreeMode && config.onZoomin) config.onZoomin();
+
+      if (!isFullScreeMode && zoom.className.indexOf("zoom-out") != -1) {
+        zoom.className = zoom.className.replace("zoom-out selected", "zoom-in");
+        if (config.onZoomout) config.onZoomout();
+      }
+      setTimeout(adjustControls, 1000);
+    }
+
+    document.addEventListener("fullscreenchange", screenStateChange, false);
+    document.addEventListener("mozfullscreenchange", screenStateChange, false);
+    document.addEventListener(
+      "webkitfullscreenchange",
+      screenStateChange,
+      false
+    );
+  }
+
   if (
     buttons.has("volume-slider") ||
     buttons.has("full-screen") ||
@@ -236,13 +318,12 @@ function getHTMLMediaElement(mediaElement, config) {
   mediaElementContainer.appendChild(mediaBox);
 
   mediaBox.appendChild(mediaElement);
-
   if (config.title) {
     var h2 = document.createElement("h2");
     h2.innerHTML = config.title;
     h2.setAttribute(
       "style",
-      "font-size:17px;color:white;padding:0;margin:0;text-align: left; margin-top: 10px; margin-left: 10px; display: block; border: 0;line-height:1.5;z-index:1;"
+      "color:white;font-size:17px;padding:0;margin:0;text-align: left; margin-top: 10px; margin-left: 10px; display: block; border: 0;line-height:1.5;z-index:1;"
     );
     mediaBox.appendChild(h2);
   }
